@@ -2,7 +2,7 @@
 A live chat application for demonstrating to students, who have just started learning programming, how python can be used in a real application.
 
 # About #
-Python Chatter was developed as part of a STEM project by Chris Doherty. It's intended purpose is to aid as a fun collaborative exercise for students to participate in. Students must work as a team to figure out how to piece together functions such that their code works and they can connect to the Python Chatter server to talk with their friends across a class room network. 
+Python Chatter was developed as part of a STEM project by Chris Doherty. Its intended purpose is to aid as a fun collaborative exercise for students to participate in. Students must work as a team to figure out how to piece together functions such that their code works and they can connect to the Python Chatter server to talk with their friends across a class room network. 
 
 # Pre-requisits 
 1. Python 3.2.x. Python Chatter was written and tested using Python 3.2.x. 
