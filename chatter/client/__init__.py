@@ -7,7 +7,13 @@ Contains all classes for the client logic code.
 import tkinter as tk
 from datetime import datetime
 
-class ClientController(object):
+'''
+This object patches the client socket manager with the client GUI. It's sort of like a man-in-the-
+middle.
+
+We do this to separate out logic in the GUI from managing the socket. 
+'''
+class Controller(object):
     ''' Reference to teh gui object '''
     gui_ = None
     
@@ -23,8 +29,8 @@ class ClientController(object):
         self.client_ = client
         self.gui_ = gui
         
-        self.client_.closing = self.handle_close
-        self.client_.received_message = self.handle_received_message
+        self.client_.closing_callback = self.handle_close
+        self.client_.received_message_callback = self.handle_received_message
         
         self.gui_.input.entry_.bind('<Return>', lambda event: self.handle_input(
             self.gui_.input.text))
@@ -39,12 +45,18 @@ class ClientController(object):
     incoming messages.
     '''
     def init(self):
-        print("[ClientController] Init - starting GUI and Client")
+        print("[Controller] Init - starting GUI and Client")
         self.client_.start()
         
         self.gui_.received_messages.append_message("Welcome to Chatter App", True)
         self.gui_.received_messages.append_message("======================")
         self.gui_.run()
+    
+    ''' 
+    Kills the client all together.
+    '''
+    def stop(self):
+        self.handle_close()
     
     ''' 
     Handler for window closing
@@ -65,7 +77,7 @@ class ClientController(object):
     @param message The StringVar object from the GUI
     '''
     def handle_input(self, message):
-        print("[ClientController] Handling input")
+        print("[Controller] Handling input")
         self.client_.send_message(bytes("%s: %s" % (self.nickname_, message.get()), 'UTF-8'))
         message.set("")
         
@@ -76,7 +88,7 @@ class ClientController(object):
     @param message The message to be displayed
     '''
     def handle_received_message(self, message):
-        print("[ClientController] Handling new message")
+        print("[Controller] Handling new message")
         time = datetime.now()
         self.gui_.display_message("[%d:%d] %s" % (time.hour, time.minute, message.decode('UTF-8')))
 
@@ -85,6 +97,10 @@ import socket
 from chatter.client.gui import GUI
 from threading import Thread
 
+'''
+Represents the client connection to a server. This object will listen for new messages coming in
+on the socket as well as send any messages we need it to, to the server
+'''
 class Client(Thread):
     ''' The receive buffer size, we read this number of bytes in at most per read '''
     RECV_BUFF_SIZE = 1024
@@ -98,14 +114,14 @@ class Client(Thread):
     ''' The socket used to send and receive messages '''
     socket_ = None
     
-    ''' Callback for when a new message is received '''
-    received_message = None
-    
-    ''' Callback for when we're closing down '''
-    closing = None
-    
     ''' Flag indicating running of thread status '''
     running_ = True
+    
+    ''' Callback for when a new message is received '''
+    received_message_callback = None
+    
+    ''' Callback for when we're closing down '''
+    closing_callback = None
     
     '''
     Initialises the socket class.
@@ -135,13 +151,16 @@ class Client(Thread):
     Disconnects the socket from the server
     ''' 
     def disconnect(self):
-        print("[Client] Disconnecting")
         try:
             self.running_ = False
-            self.socket_.shutdown(socket.SHUT_RDWR)
-            self.socket_.close()
+            
+            if self.socket_ != None:
+                print("[Client] Disconnecting")
+                self.socket_.shutdown(socket.SHUT_RDWR)
+                self.socket_.close()
+                self.socket_ = None
         except socket.error:
-            print("[Client] Socket appears to be closed already")
+            pass
 
     '''
     Sends a message down the socket. This attempts to send all data. Should it fail - an error is 
@@ -158,7 +177,8 @@ class Client(Thread):
                 print("[Client] Error when sending message")
             
     '''
-    Listens for new messages coming in.
+    Listens for new messages coming in. Should not be called directly as this operates in a 
+    separate thread. Use the Client.start() method to start the client.
     '''    
     def run(self):
         print("[Client] Listening for incoming messages")
@@ -174,9 +194,11 @@ class Client(Thread):
                 
                 print("[Client] Received new message")
                 
-                self.received_message(message)
+                self.received_message_callback(message)
             except Exception:
                 print("[Client] Uh oh... something went wrong receiving a message")
                 self.running_ = False
-                self.closing()
+                
+                if self.closing_callback != None:
+                    self.closing_callback()
         
