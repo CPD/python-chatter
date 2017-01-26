@@ -6,6 +6,7 @@ Python Chatter was developed as part of a STEM project by Chris Doherty. Its int
 
 ## Pre-requisits 
 The application was developed with the intention of being as dependent free as possible. 
+
 1. Python 3.2.x.
 1. Tkinter library (Client GUI, installed on Windows as part of 3.2.x)
 
