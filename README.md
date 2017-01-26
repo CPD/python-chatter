@@ -21,7 +21,11 @@ To start a server instance of Python Chatter run the following in a terminal rep
 `python chatter_server.py 127.0.0.1 8080`
 
 ### Client
-To start a client we must alter the client configuration file `chatter_client_config.py` changing the three variables: `nickname`, `host`, and `port`. See each variables for explanations. Launching the client has been designed so it can be launched from the IDLE as used in many schools; this is because it's often students do not have command line access. Open the `chatter_client.py` file using the Python IDLE and run (F5). All debug will appear in the console window of the IDLE.
+The client has been designed such that it can be launched from the Python IDLE used by many schools. This is because it's often students do not have command line access. 
+
+To start a client we must first alter the client configuration file `chatter_client_config.py` and change the three variables: `nickname`, `host`, and `port` (see each variables for explanations).
+
+Once the configuration has been altered open the `chatter_client.py` file using the Python IDLE. Select *Run File* from the *Run* menu (or hit F5). All debug will appear in the console window of the IDLE.
 
 ## Advice & Guidance
 Any firewalls presnet on each machine must allow data to pass through the specified port. In the event there's an ambitious attempt to send data across networks the network should be set up appropriately (consult your tech team). 
