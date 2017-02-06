@@ -59,16 +59,23 @@ class ServerClient(Thread):
                 # We don't want to handle blanks 
                 if message == b'':
                     continue
+                elif message == b'#disconnect#':
+                    self.handle_disconnect()
+                    continue
                 
                 self.debug_("Received a new message: %s" % message.decode('UTF-8'))
                 
                 self.handle_message(message)
-            except Exception:
-                self.debug_("Uh oh... something went wrong, or the client closed down "
-                      "(%s, %d)" % 
-                      self.client_address_)
-                self.running_ = False
-                self.server_.kill_and_remove_connection(self)
+            except Exception as e:
+                print(e)
+                self.debug_("Error... closing socket (%s, %d)" % self.client_address_)
+                self.handle_disconnect()
+    '''
+    Handles clean disconnect of this server client
+    '''
+    def handle_disconnect(self):
+        self.running_ = False
+        self.server_.kill_and_remove_connection(self)
     
     ''' 
     Handles a new message. Generally it only needs to pass the message to the Server object for 
@@ -98,8 +105,11 @@ class ServerClient(Thread):
         self.running_ = False
         
         if self.socket_ != None:
-            self.socket_.shutdown(socket.SHUT_RDWR)
-            self.socket_.close()
+            try:
+                self.socket_.shutdown(socket.SHUT_RDWR)
+                self.socket_.close()
+            except Exception:
+                pass
         
     ''' 
     Prints a debug message with client specific information

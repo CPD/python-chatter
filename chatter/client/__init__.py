@@ -7,6 +7,7 @@ Contains all classes for the client logic code.
 import tkinter as tk
 from datetime import datetime
 from chatter_handlers import *
+from time import sleep
 
 ''' Config var to use callbacks defined in chatter_handlers.py '''
 USE_CALLBACKS = True
@@ -75,6 +76,8 @@ class Controller(object):
         else:
             self.client_.send_message("%s has disconnected" % (self.nickname_))
         
+        sleep(0.5)
+        self.client_.send_message('#disconnect#')
         self.client_.disconnect()
         
         # Stop exceptions spamming the console when we close
