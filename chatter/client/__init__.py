@@ -6,6 +6,10 @@ Contains all classes for the client logic code.
 
 import tkinter as tk
 from datetime import datetime
+from chatter_handlers import *
+
+''' Config var to use callbacks defined in chatter_handlers.py '''
+USE_CALLBACKS = True
 
 '''
 This object patches the client socket manager with the client GUI. It's sort of like a man-in-the-
@@ -33,12 +37,16 @@ class Controller(object):
         self.client_.received_message_callback = self.handle_received_message
         
         self.gui_.input.entry_.bind('<Return>', lambda event: self.handle_input(
-            self.gui_.input.text))
+            self.gui_.input.text.get()))
         
         self.gui_.protocol("WM_DELETE_WINDOW", self.handle_close)
         
         self.client_.connect()
-        self.client_.send_message(bytes("%s has connected" % (self.nickname_), 'UTF-8'))
+        
+        if USE_CALLBACKS:
+            on_connect(self)
+        else:
+            self.client_.send_message("%s has connected" % (self.nickname_))
     
     ''' 
     Everything is technically initialised - we just want to run the GUI up and start listening for
@@ -62,7 +70,11 @@ class Controller(object):
     Handler for window closing
     '''
     def handle_close(self):
-        self.client_.send_message(bytes("%s has disconnected" % (self.nickname_), 'UTF-8'))
+        if USE_CALLBACKS:
+            on_disconnect(self)
+        else:
+            self.client_.send_message("%s has disconnected" % (self.nickname_))
+        
         self.client_.disconnect()
         
         # Stop exceptions spamming the console when we close
@@ -77,9 +89,12 @@ class Controller(object):
     @param message The StringVar object from the GUI
     '''
     def handle_input(self, message):
-        print("[Controller] Handling input")
-        self.client_.send_message(bytes("%s: %s" % (self.nickname_, message.get()), 'UTF-8'))
-        message.set("")
+        if USE_CALLBACKS:
+            on_send_message(self, message)
+        else: 
+            print("[Controller] Handling input")
+            self.send_message("%s: %s" % (self.nickname_, message))
+            self.clear_input()
         
     '''
     Handles a new message. This class expects the message parameter to be a string - not bytes. 
@@ -88,9 +103,26 @@ class Controller(object):
     @param message The message to be displayed
     '''
     def handle_received_message(self, message):
-        print("[Controller] Handling new message")
-        time = datetime.now()
-        self.gui_.display_message("[%d:%d] %s" % (time.hour, time.minute, message.decode('UTF-8')))
+        if USE_CALLBACKS:
+            on_received_message(self, message)
+        else:
+            print("[Controller] Handling new message")
+            time = datetime.now()
+            self.gui_.display_message("[%d:%d] %s" % (time.hour, time.minute, message))
+    
+    
+    ''' --- HELPER FUNCTIONS --- '''
+    def display_message(self, message):
+        self.gui_.display_message(message)
+        
+    def send_message(self, message):
+        self.client_.send_message(message)
+        
+    def get_nickname(self):
+        return self.nickname_
+    
+    def clear_input(self):
+        self.gui_.input.text.set("")
 
 
 import socket
@@ -172,7 +204,7 @@ class Client(Thread):
         if self.socket_ != None: 
             try:
                 print("[Client] Sending message")
-                self.socket_.sendall(message)
+                self.socket_.sendall(bytes(message, 'UTF-8'))
             except socket.error:
                 print("[Client] Error when sending message")
             
@@ -194,7 +226,7 @@ class Client(Thread):
                 
                 print("[Client] Received new message")
                 
-                self.received_message_callback(message)
+                self.received_message_callback(message.decode('UTF-8'))
             except Exception:
                 print("[Client] Uh oh... something went wrong receiving a message")
                 self.running_ = False
